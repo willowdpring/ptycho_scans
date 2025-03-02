@@ -8,10 +8,8 @@ from tkinter import messagebox
 class StageGUI:
     def __init__(self, master, stage):
         self.master = master
-        self.master.title(f"{stage.name} Stage Control")
-        
         self.stage = stage
-        
+        """        
         # Serial number input field and connection button
         self.serial_label = tk.Label(master, text="Serial Number:")
         self.serial_label.grid(row=0, column=0, padx=10, pady=10)
@@ -21,7 +19,7 @@ class StageGUI:
         
         self.connect_button = tk.Button(master, text="Connect", command=self.connect_stage)
         self.connect_button.grid(row=0, column=2, padx=10, pady=10)
-        
+        """
         # Position display
         self.position_label = tk.Label(master, text=f"Position: {self.stage.position}")
         self.position_label.grid(row=1, column=0, columnspan=3, padx=10, pady=10)

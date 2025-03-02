@@ -4,9 +4,9 @@ import time
 
 class Scan:
     def __init__(self,cam,x,y):
-        self.x_stage = cam
-        self.y_stage = x
-        self.camera = y
+        self.camera = cam
+        self.x_stage = x
+        self.y_stage = y
         
         # Scan parameters
         self.num_x = 5  # Number of X positions
@@ -18,8 +18,7 @@ class Scan:
         # State variables
         self.is_running = False
         self.is_paused = False
-        self.current_x = 0
-        self.current_y = 0
+        self.current_image = 0
         
     def setup_scan(self, num_x, num_y, res_x, res_y, snake_pattern=True):
         """Configure the scan parameters"""
@@ -38,51 +37,29 @@ class Scan:
         print("Scan started")
         
         try:
-            while self.is_running and self.current_y < self.num_y:
+            for i in range(self.num_x * self.num_y):
+                self.current_image = i
                 if self.is_paused:
                     time.sleep(0.1)  # Small sleep to prevent CPU hogging while paused
                     continue
-                    
-                # Determine X direction based on pattern and current row
-                x_direction = 1
-                x_start = 0
-                if self.snake_pattern and self.current_y % 2 == 1:
-                    x_direction = -1
-                    x_start = self.num_x - 1
+
+                target_y = (i//self.num_y) * self.res_y
+
+                if self.snake_pattern and (i//self.num_y) % 2 == 1:
+                    target_x = (self.num_x - (1 + (i % self.num_x))) * self.res_x
+                else:
+                    target_x = (i % self.num_x ) * self.res_x
                 
-                # Set initial X position for this row if starting
-                if self.current_x == 0:
-                    self.current_x = x_start
-                    x_pos = x_start * self.res_x
-                    self.x_stage.move_to(x_pos)
-                
+                self.x_stage.move_to(target_x)
+                self.y_stage.move_to(target_y)
+
                 # Take image at current position
-                print(f"Scanning position ({self.current_x}, {self.current_y})")
+                print(f"Scanning position ({target_x}, {target_y})")
                 image = self.camera.snap_image()
-                
+
                 # Save image with position information
-                self._save_image(image, self.current_x, self.current_y)
-                
-                # Move to next position
-                if x_direction == 1:
-                    self.current_x += 1
-                    if self.current_x >= self.num_x:
-                        self.current_y += 1
-                        self.current_x = 0
-                        if self.current_y < self.num_y:
-                            self.y_stage.set_position(self.current_y * self.res_y)
-                    else:
-                        self.x_stage.set_position(self.current_x * self.res_x)
-                else:  # x_direction == -1
-                    self.current_x -= 1
-                    if self.current_x < 0:
-                        self.current_y += 1
-                        self.current_x = 0
-                        if self.current_y < self.num_y:
-                            self.y_stage.set_position(self.current_y * self.res_y)
-                    else:
-                        self.x_stage.set_position(self.current_x * self.res_x)
-                
+                self._save_image(image, target_x, target_y)
+
                 # Small delay to avoid overwhelming the hardware
                 time.sleep(0.1)
                 
@@ -131,6 +108,9 @@ class Scanner_Backend:
         self.camera = Camera(sn_cam)
         self.scan = Scan(self.camera,self.x_stage,self.y_stage)
 
+    def connect_cam(self,sn):
+        self.camera = Camera(sn)
+        
     def connect_stage(self,sn,ax):
         if ax == 'x':
             self.x_stage = Stage("X",sn)

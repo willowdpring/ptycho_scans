@@ -6,21 +6,20 @@ import time
 from camera import Camera
 
 class CameraGUI:
-    def __init__(self, master, camera):
+    def __init__(self, master, camera, reconnects=False):
         self.master = master
-        self.master.title(f"{camera.serial_number} Camera Control")
 
         self.camera = camera
-
-        # Serial number input field and connection button
-        self.serial_label = tk.Label(master, text="Serial Number:")
-        self.serial_label.grid(row=0, column=0, padx=10, pady=10)
-        
-        self.serial_entry = tk.Entry(master)
-        self.serial_entry.grid(row=0, column=1, padx=10, pady=10)
-        
-        self.connect_button = tk.Button(master, text="Connect", command=self.connect_camera)
-        self.connect_button.grid(row=0, column=2, padx=10, pady=10)
+        if reconnects:
+            # Serial number input field and connection button
+            self.serial_label = tk.Label(master, text="Serial Number:")
+            self.serial_label.grid(row=0, column=0, padx=10, pady=10)
+            
+            self.serial_entry = tk.Entry(master)
+            self.serial_entry.grid(row=0, column=1, padx=10, pady=10)
+            
+            self.connect_button = tk.Button(master, text="Connect", command=self.connect_camera)
+            self.connect_button.grid(row=0, column=2, padx=10, pady=10)
 
         # Exposure controls
         self.exposure_label = tk.Label(master, text="Exposure (ms):")
@@ -33,16 +32,15 @@ class CameraGUI:
         self.set_exposure_button = tk.Button(master, text="Set Exposure", command=self.set_exposure)
         self.set_exposure_button.grid(row=1, column=2, padx=10, pady=10)
 
-        # Frame display
-        self.frame_label = tk.Label(master, text="Captured Frame:")
-        self.frame_label.grid(row=2, column=0, columnspan=3, padx=10, pady=10)
+        # Frame display label and the grab frame button in the same row
+        self.frame_label = tk.Label(master, text="Grabbed Frame:")
+        self.frame_label.grid(row=2, column=0, padx=10, pady=10)
+
+        self.snap_button = tk.Button(master, text="Grab Frame", command=self.grab_frame)
+        self.snap_button.grid(row=2, column=1, padx=10, pady=10)  # Move the button to the left of the label
 
         self.canvas = tk.Canvas(master, width=640, height=480)
         self.canvas.grid(row=3, column=0, columnspan=3, padx=10, pady=10)
-
-        # Grab frame button
-        self.snap_button = tk.Button(master, text="Grab Frame", command=self.grab_frame)
-        self.snap_button.grid(row=4, column=0, columnspan=3, padx=10, pady=10)
 
     def connect_camera(self):
         """Connect to the camera using the serial number."""
@@ -68,7 +66,7 @@ class CameraGUI:
             messagebox.showinfo("Exposure Set", f"Exposure set to {exposure_ms} ms.")
         except ValueError:
             messagebox.showerror("Invalid Input", "Please enter a valid number for exposure.")
-    
+
 
     def grab_frame(self):
         """Grab and display a frame from the camera."""
@@ -101,7 +99,7 @@ if __name__ == "__main__":
     root = tk.Tk()
 
     # Create the CameraGUI
-    gui = CameraGUI(root, camera)
+    gui = CameraGUI(root, camera, reconnects=True)
 
     # Start the Tkinter main loop
     root.mainloop()

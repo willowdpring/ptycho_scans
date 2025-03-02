@@ -12,7 +12,6 @@ class Camera:
             print("WARNING: Camera initialized in simulation mode (no serial number provided)")
             # Put the images in an array
             self.dummy_images = [cv2.imread('dummy_frame_1.png'),cv2.imread('dummy_frame_2.png')]
-
         else:
             self._connect_camera()
     
