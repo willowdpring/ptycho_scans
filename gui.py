@@ -1,11 +1,13 @@
 # main.py
 import tkinter as tk
-from tkinter import ttk, simpledialog, messagebox
+from tkinter import ttk, simpledialog, messagebox, StringVar, filedialog
 import threading
-
+from pylablib.devices import Thorlabs
 from camera import Camera
 from cameragui import CameraGUI
 from stage import Stage
+from xStage import XiStage
+import libximc.highlevel as ximc  # Import for Standa stage enumeration
 from stagegui import StageGUI
 from scan import Scan, Scanner_Backend
 
@@ -17,6 +19,9 @@ class ImagingApp:
         
         # Initialize backend with no hardware by default (simulation mode)
         self.backend = Scanner_Backend()
+        
+        # Lists to store available devices
+        self.ximc_devices = []
         
         # Set up tabs and main UI structure
         self.create_widgets()
@@ -53,29 +58,64 @@ class ImagingApp:
         config_frame = ttk.LabelFrame(parent, text="Hardware Configuration")
         config_frame.pack(fill="both", expand=True, padx=10, pady=10)
         
+        enumeratrion_buttons_frame = tk.Frame(config_frame)
+        enumeratrion_buttons_frame.pack(fill="x", padx=10, pady=5)
+
+        # Button to enumerate XIMC devices
+        enumerateX_frame = ttk.Frame(enumeratrion_buttons_frame)
+        enumerateX_frame.pack(side='right', padx=5, pady=5)
+        ttk.Button(enumerateX_frame, text="Enumerate Standa Stages", 
+                  command=self.enumerate_ximc_devices).pack(pady=10)
+        
+        # Button to enumerate THOR devices
+        enumerateT_frame = ttk.Frame(enumeratrion_buttons_frame)
+        enumerateT_frame.pack(side='right', padx=5, pady=5)
+        ttk.Button(enumerateT_frame, text="Enumerate Thor Stages", 
+                  command=self.enumerate_thor_devices).pack(pady=10)
+
+        # Button to enumerate cameras devices
+        enumerateC_frame = ttk.Frame(enumeratrion_buttons_frame)
+        enumerateC_frame.pack(side='right', padx=5, pady=5)
+        ttk.Button(enumerateC_frame, text="Enumerate Cameras", 
+                  command=self.enumerate_cameras).pack(pady=10)
+
         # X Stage Configuration
         x_stage_frame = ttk.Frame(config_frame)
         x_stage_frame.pack(fill="x", padx=10, pady=5)
         
-        ttk.Label(x_stage_frame, text="X Stage SN:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
-        self.x_stage_sn = ttk.Entry(x_stage_frame, width=20)
-        self.x_stage_sn.grid(row=0, column=1, padx=5, pady=5)
+        ttk.Label(x_stage_frame, text="X Stage Type:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        self.x_stage_type = StringVar(value="Thorlabs")
+        x_type_combo = ttk.Combobox(x_stage_frame, textvariable=self.x_stage_type, 
+                                   values=["Thorlabs", "Standa"], state="readonly", width=10)
+        x_type_combo.grid(row=0, column=1, padx=5, pady=5)
+        
+        ttk.Label(x_stage_frame, text="X Stage SN/URI:").grid(row=0, column=2, padx=5, pady=5, sticky="w")
+        self.x_stage_sn = ttk.Combobox(x_stage_frame, width=30)
+        self.x_stage_sn.grid(row=0, column=3, padx=5, pady=5)
+        
         self.x_stage_status = ttk.Label(x_stage_frame, text="Not Connected")
-        self.x_stage_status.grid(row=0, column=2, padx=5, pady=5)
+        self.x_stage_status.grid(row=0, column=4, padx=5, pady=5)
         ttk.Button(x_stage_frame, text="Connect", 
-                  command=lambda: self.connect_stage('x')).grid(row=0, column=3, padx=5, pady=5)
+                  command=lambda: self.connect_stage('x')).grid(row=0, column=5, padx=5, pady=5)
         
         # Y Stage Configuration
         y_stage_frame = ttk.Frame(config_frame)
         y_stage_frame.pack(fill="x", padx=10, pady=5)
         
-        ttk.Label(y_stage_frame, text="Y Stage SN:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
-        self.y_stage_sn = ttk.Entry(y_stage_frame, width=20)
-        self.y_stage_sn.grid(row=0, column=1, padx=5, pady=5)
+        ttk.Label(y_stage_frame, text="Y Stage Type:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        self.y_stage_type = StringVar(value="Thorlabs")
+        y_type_combo = ttk.Combobox(y_stage_frame, textvariable=self.y_stage_type, 
+                                   values=["Thorlabs", "Standa"], state="readonly", width=10)
+        y_type_combo.grid(row=0, column=1, padx=5, pady=5)
+        
+        ttk.Label(y_stage_frame, text="Y Stage SN/URI:").grid(row=0, column=2, padx=5, pady=5, sticky="w")
+        self.y_stage_sn = ttk.Combobox(y_stage_frame, width=30)
+        self.y_stage_sn.grid(row=0, column=3, padx=5, pady=5)
+        
         self.y_stage_status = ttk.Label(y_stage_frame, text="Not Connected")
-        self.y_stage_status.grid(row=0, column=2, padx=5, pady=5)
+        self.y_stage_status.grid(row=0, column=4, padx=5, pady=5)
         ttk.Button(y_stage_frame, text="Connect", 
-                  command=lambda: self.connect_stage('y')).grid(row=0, column=3, padx=5, pady=5)
+                  command=lambda: self.connect_stage('y')).grid(row=0, column=5, padx=5, pady=5)
         
         # Camera Configuration
         camera_frame = ttk.Frame(config_frame)
@@ -99,6 +139,134 @@ class ImagingApp:
         # Initialize with simulation mode button
         ttk.Button(refresh_frame, text="Use Simulation Mode", 
                   command=self.use_simulation).pack(pady=10)
+                  
+        # Set up callback when stage type changes
+        x_type_combo.bind("<<ComboboxSelected>>", lambda e: self.on_stage_type_change('x'))
+        y_type_combo.bind("<<ComboboxSelected>>", lambda e: self.on_stage_type_change('y'))
+    
+    def enumerate_thor_devices(self):
+        """Enumerate available kenisis devices"""
+        try:
+            # Enumerate devices with the ENUMERATE_PROBE flag to get full information
+            self.thor_devices =  Thorlabs.list_kinesis_devices()
+            
+            if not self.thor_devices:
+                messagebox.showinfo("Device Enumeration", "No Thorlabs Kenisis devices found.")
+                return
+                
+            # Create list of device URIs for the comboboxes
+            device_list = []
+            device_info = []
+            
+            for device in self.thor_devices:
+                sn = device[0] # [('27500001', 'Kinesis K-Cube  DC Driver')]
+                device_list.append(sn)
+                # Format information about the device
+                info = f"{device[1]} - SN:{device[sn]}"
+                device_info.append(info)
+                
+            # Update both comboboxes
+            self.x_stage_sn['values'] = device_list
+            self.y_stage_sn['values'] = device_list
+            
+            # Show enumerated devices
+            devices_str = "\n".join(device_info)
+            messagebox.showinfo("Found Devices", f"Found {len(self.thor_devices)} Kenisis devices:\n\n{devices_str}")
+            
+        except Exception as e:
+            messagebox.showerror("Enumeration Error", f"Failed to enumerate THOR devices: {e}")
+     
+    def enumerate_ximc_devices(self):
+        """Enumerate available Standa XIMC devices"""
+        try:
+            # Enumerate devices with the ENUMERATE_PROBE flag to get full information
+            self.ximc_devices = ximc.enumerate_devices(ximc.EnumerateFlags.ENUMERATE_PROBE)
+            
+            if not self.ximc_devices:
+                messagebox.showinfo("Device Enumeration", "No Standa XIMC devices found.")
+                return
+                
+            # Create list of device URIs for the comboboxes
+            device_list = []
+            device_info = []
+            
+            for device in self.ximc_devices:
+                uri = device['uri']
+                device_list.append(uri)
+                # Format information about the device
+                info = f"{device['PositionerName']} - SN:{device['device_serial']}"
+                device_info.append(info)
+                
+            # Update both comboboxes
+            self.x_stage_sn['values'] = device_list
+            self.y_stage_sn['values'] = device_list
+            
+            # Show enumerated devices
+            devices_str = "\n".join(device_info)
+            messagebox.showinfo("Found Devices", f"Found {len(self.ximc_devices)} Standa devices:\n\n{devices_str}")
+            
+        except Exception as e:
+            messagebox.showerror("Enumeration Error", f"Failed to enumerate XIMC devices: {e}")
+
+    def enumerate_cameras(self):
+        """Enumerate available thorlabs cameras"""
+        try:
+            # Enumerate devices with the ENUMERATE_PROBE flag to get full information
+            self.cam_devices =  Thorlabs.list_cameras_tlcam()
+            
+            if not self.cam_devices:
+                messagebox.showinfo("Device Enumeration", "No Thorlabs Camera found.")
+                return
+                
+            # Create list of device URIs for the comboboxes
+            device_list = []
+            device_info = []
+            
+            for device in self.cam_devices:
+                sn = device # ['12001', '12002']
+                device_list.append(sn)
+                # Format information about the device
+                info = f"Thorlabs camera SN:{sn}"
+                device_info.append(info)
+                
+            # Update combobox
+            self.camera_sn['values'] = device_list
+            
+            # Show enumerated devices
+            devices_str = "\n".join(device_info)
+            messagebox.showinfo("Found Devices", f"Found {len(self.cam_devices)} Kenisis devices:\n\n{devices_str}")
+            
+        except Exception as e:
+            messagebox.showerror("Enumeration Error", f"Failed to enumerate XIMC devices: {e}")
+    
+
+
+
+    def on_stage_type_change(self, axis):
+        """Handle stage type selection change"""
+        stage_type = self.x_stage_type.get() if axis == 'x' else self.y_stage_type.get()
+        stage_combo = self.x_stage_sn if axis == 'x' else self.y_stage_sn
+        
+        if stage_type == "Standa":
+            # If we have enumerated XIMC devices, populate the combobox
+            if self.ximc_devices:
+                uris = [device['uri'] for device in self.ximc_devices]
+                stage_combo['values'] = uris
+            else:
+                # If no enumeration has been done, prompt user
+                messagebox.showinfo("Device Selection", 
+                                   "Please use 'Enumerate Standa Stages' to find available devices")
+                stage_combo['values'] = []
+        else:
+            # If we have enumerated THOR devices, populate the combobox
+            if self.thor_devices:
+                sns = [device['sn'] for device in self.thor_devices]
+                stage_combo['values'] = sns
+            else:
+                # If no enumeration has been done, prompt user
+                messagebox.showinfo("Device Selection", 
+                                   "Please use 'Enumerate Thor Stages' to find available devices")
+                stage_combo['values'] = []
     
     def setup_stage_tab(self, parent):
         """Setup tab for stage control"""
@@ -166,6 +334,76 @@ class ImagingApp:
         ttk.Button(param_frame, text="Apply Settings", command=self.apply_scan_settings).grid(
             row=5, column=0, columnspan=2, padx=5, pady=10)
         
+        # output frame
+        save_frame = ttk.LabelFrame(parent, text="Image Saving Config")
+        save_frame.pack(fill="x", padx=10, pady=5)
+
+        # Output folder selection
+        folder_frame = ttk.Frame(save_frame)
+        folder_frame.pack(fill="x", padx=10, pady=5)
+
+        ttk.Label(folder_frame, text="Output Folder:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+
+        self.folder_var = tk.StringVar()
+        folder_entry = ttk.Entry(folder_frame, textvariable=self.folder_var, width=40)
+        folder_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+
+        def browse_folder():
+            folder_selected = filedialog.askdirectory()
+            if folder_selected:
+                self.folder_var.set(folder_selected)
+
+        browse_button = ttk.Button(folder_frame, text="Browse", command=browse_folder)
+        browse_button.grid(row=0, column=2, padx=5, pady=5)
+
+        # Configure column weights for proper expansion
+        folder_frame.columnconfigure(1, weight=1)
+
+        # Image prefix entry
+        prefix_frame = ttk.Frame(save_frame)
+        prefix_frame.pack(fill="x", padx=10, pady=5)
+
+        ttk.Label(prefix_frame, text="Image Prefix:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+
+        self.prefix_var = tk.StringVar(value="image_")
+        prefix_entry = ttk.Entry(prefix_frame, textvariable=self.prefix_var, width=40)
+        prefix_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+
+        # Configure column weights for proper expansion
+        prefix_frame.columnconfigure(1, weight=1)
+
+        # Save options
+        options_frame = ttk.Frame(save_frame)
+        options_frame.pack(fill="x", padx=10, pady=5)
+
+        self.auto_save_var = tk.BooleanVar(value=True)
+        auto_save_check = ttk.Checkbutton(
+            options_frame, 
+            text="Auto-save images", 
+            variable=self.auto_save_var
+        )
+        auto_save_check.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+
+        self.overwrite_var = tk.BooleanVar(value=False)
+        overwrite_check = ttk.Checkbutton(
+            options_frame, 
+            text="Overwrite existing files", 
+            variable=self.overwrite_var
+        )
+        overwrite_check.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+
+        # Apply settings button for saving configuration
+        apply_save_button = ttk.Button(
+            save_frame, 
+            text="Apply Save Settings", 
+            command=self.apply_save_settings
+        )
+        apply_save_button.pack(padx=10, pady=10)
+
+
+        # Configure column weights for proper expansion
+        options_frame.columnconfigure(0, weight=1)
+        options_frame.columnconfigure(1, weight=1)
         # Control frame
         control_frame = ttk.LabelFrame(parent, text="Scan Controls")
         control_frame.pack(fill="x", padx=10, pady=10)
@@ -195,28 +433,86 @@ class ImagingApp:
         self.progress_bar = ttk.Progressbar(status_frame, variable=self.progress_var, length=200)
         self.progress_bar.grid(row=1, column=1, padx=5, pady=5, sticky="w")
         
+
         # Check if scan is possible
         self.update_scan_ui_state()
     
-    def connect_stage(self, axis):
-        """Connect to a stage with the given serial number"""
-        sn = self.x_stage_sn.get() if axis == 'x' else self.y_stage_sn.get()
+
+    def apply_save_settings(self):
+        """Apply the image saving settings to the scanner"""
+        folder = self.folder_var.get()
+        prefix = self.prefix_var.get()
+        auto_save = self.auto_save_var.get()
+        overwrite = self.overwrite_var.get()
         
-        if not sn:
-            # Use simulation mode if no SN provided
-            sn = None
+        # Validate folder path
+        if not folder:
+            messagebox.showerror("Error", "Please select an output folder")
+            return
+        
+        # Validate prefix
+        if not prefix:
+            messagebox.showerror("Error", "Please enter an image prefix")
+            return
+        
+        # Apply settings to scanner backend
+        success = self.backend.setup_scan_saving(folder, prefix, auto_save, overwrite)
+        
+        if success:
+            messagebox.showinfo("Success", "Image saving settings applied")
+        else:
+            messagebox.showerror("Error", "Failed to apply save settings")
+
+    def connect_stage(self, axis):
+        """Connect to a stage with the given serial number or URI"""
+        stage_type = self.x_stage_type.get() if axis == 'x' else self.y_stage_type.get()
+        sn_or_uri = self.x_stage_sn.get() if axis == 'x' else self.y_stage_sn.get()
+        
+        if not sn_or_uri and stage_type != "Standa":
+            # Use simulation mode if no SN provided for Thorlabs
+            sn_or_uri = None
             
         try:
-            # Connect the stage
-            self.backend.connect_stage(sn, axis)
+            # Create appropriate stage based on type
+            if stage_type == "Thorlabs":
+                # Use original Stage class for Thorlabs devices
+                if axis == 'x':
+                    self.backend.x_stage = Stage("X", sn_or_uri)
+                else:
+                    self.backend.y_stage = Stage("Y", sn_or_uri)
+                    
+                # Update status label
+                status_text = "Connected" if sn_or_uri else "Simulation Mode"
+                
+            elif stage_type == "Standa":
+                # Use XiStage for Standa devices
+                if not sn_or_uri:
+                    messagebox.showerror("Connection Error", "Please select a Standa device URI")
+                    return
+                    
+                stage_name = f"{axis.upper()} Standa Stage"
+                
+                # Create a custom name for the stage
+                if axis == 'x':
+                    self.backend.x_stage = XiStage(name=stage_name)
+                    # Override the default address with the selected one
+                    self.backend.x_stage.axis.params.address = sn_or_uri
+                    self.backend.x_stage._connect_stage()
+                else:
+                    self.backend.y_stage = XiStage(name=stage_name)
+                    # Override the default address with the selected one
+                    self.backend.y_stage.axis.params.address = sn_or_uri
+                    self.backend.y_stage._connect_stage()
+                
+                status_text = "Connected (Standa)"
             
             # Update status label
             if axis == 'x':
-                self.x_stage_status.config(text="Connected" if sn else "Simulation Mode")
+                self.x_stage_status.config(text=status_text)
                 # Update the stage GUI
                 self.refresh_x_stage_gui()
             else:
-                self.y_stage_status.config(text="Connected" if sn else "Simulation Mode")
+                self.y_stage_status.config(text=status_text)
                 # Update the stage GUI
                 self.refresh_y_stage_gui()
                 
