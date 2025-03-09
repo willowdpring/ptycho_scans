@@ -40,7 +40,6 @@ class Stage:
             self.move_to(0)
         self.move_to(self.zero_pos)
         
-
     def move_by(self, relative_distance):
         """Move stage by a relative distance from current position"""
         target = self.position + relative_distance
@@ -77,8 +76,6 @@ class Stage:
         else:
             print(f"Closing virtual {self.name} stage")
             
-
     def __del__(self):
         """Destructor to ensure stage is closed when object is deleted"""
         self.close()
-
