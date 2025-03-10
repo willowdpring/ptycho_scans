@@ -37,7 +37,6 @@ class Axis:
     def __init__(self, pm: AxisParameters, config_parser: ConfigParser, verbose: bool = False):
         self.pm = pm
         self.verbose = verbose
-
         self.range = AxisRange(self.pm, config_parser)
         self.axis: ximc.Axis | None = None
         self.error = ''

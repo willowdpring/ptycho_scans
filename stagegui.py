@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 from stage import Stage
-from xStage import XiStage
+from xStage import XiStage, default_params
 import tkinter as tk
 from tkinter import messagebox
 
@@ -91,7 +91,7 @@ class StageGUI:
 
 if __name__ == "__main__":
     # Create the Stage instance
-    stage = XiStage(name="TestStage")
+    stage = XiStage(xi_params=default_params, name="TestStage")
 
     # Create the Tkinter window
     root = tk.Tk()

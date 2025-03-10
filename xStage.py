@@ -5,7 +5,7 @@ from axis import Axis
 from axisparameters import * # AxisParameters
 
 
-xi_params = AxisParameters(
+default_params = AxisParameters(
                     pm_id='STANDA axis',
                     #address=f'xi-emu:///{Path.home() / 'Temp' / 'br_stage1_test.bin'}',
                     address=f'xi-com:\\\\.\\COM3',
@@ -41,7 +41,7 @@ xi_params = AxisParameters(
 
 
 class XiStage:
-    def __init__(self,name = "STANDA_STAGE"):
+    def __init__(self,xi_params,name = "STANDA_STAGE"):
         self.config_parser = ConfigParser(name="default_conf")
         self.axis = Axis(xi_params,self.config_parser)
         self.name = name

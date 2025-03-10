@@ -6,7 +6,7 @@ from pylablib.devices import Thorlabs
 from camera import Camera
 from cameragui import CameraGUI
 from stage import Stage
-from xStage import XiStage
+from xStage import XiStage, default_params
 import libximc.highlevel as ximc  # Import for Standa stage enumeration
 from stagegui import StageGUI
 from scan import Scan, Scanner_Backend
@@ -469,7 +469,7 @@ class ImagingApp:
         sn_or_uri = self.x_stage_sn.get() if axis == 'x' else self.y_stage_sn.get()
         
         if not sn_or_uri and stage_type != "Standa":
-            # Use simulation mode if no SN provided for Thorlabs
+            # Use simulation mode if no SN provided
             sn_or_uri = None
             
         try:
@@ -494,12 +494,15 @@ class ImagingApp:
                 
                 # Create a custom name for the stage
                 if axis == 'x':
-                    self.backend.x_stage = XiStage(name=stage_name)
+                    new_xi_params = default_params
+                    new_xi_params.address = sn_or_uri
+                    self.backend.x_stage = XiStage(xi_params=new_xi_params,name=stage_name)
                     # Override the default address with the selected one
-                    self.backend.x_stage.axis.params.address = sn_or_uri
                     self.backend.x_stage._connect_stage()
                 else:
-                    self.backend.y_stage = XiStage(name=stage_name)
+                    new_xi_params = default_params
+                    new_xi_params.address = sn_or_uri
+                    self.backend.y_stage = XiStage(xi_params=new_xi_params,name=stage_name)
                     # Override the default address with the selected one
                     self.backend.y_stage.axis.params.address = sn_or_uri
                     self.backend.y_stage._connect_stage()
