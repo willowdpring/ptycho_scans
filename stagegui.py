@@ -14,18 +14,20 @@ class StageGUI:
         self.position_label = tk.Label(master, text=f"Position: {self.stage.position}")
         self.position_label.grid(row=1, column=0, columnspan=3, padx=10, pady=10)
         
+        self.units = self.stage.units if 'units' in dir(self.stage) else self.stage.config_parser.get_entry('units')
+
         # Jog buttons (move stage)
-        self.jog_label = tk.Label(master, text="Jog Position (mm):")
+        self.jog_label = tk.Label(master, text="Move By [{self.units}]:")
         self.jog_label.grid(row=2, column=0, padx=10, pady=10)
         
         self.jog_entry = tk.Entry(master)
         self.jog_entry.grid(row=2, column=1, padx=10, pady=10)
         
-        self.jog_button = tk.Button(master, text="Jog", command=self.jog_stage)
+        self.jog_button = tk.Button(master, text="Move By [{self.units}]", command=self.jog_stage)
         self.jog_button.grid(row=2, column=2, padx=10, pady=10)
         
         # Move to absolute position section
-        self.move_to_label = tk.Label(master, text="Move to Position (mm):")
+        self.move_to_label = tk.Label(master, text="Move to Position [{self.units}]:")
         self.move_to_label.grid(row=3, column=0, padx=10, pady=10)
         
         self.move_to_entry = tk.Entry(master)
@@ -63,8 +65,8 @@ class StageGUI:
         """Jog the stage by a relative distance."""
         try:
             distance = float(self.jog_entry.get())
-            new_position = self.stage.move_by(distance)
-            self.position_label.config(text=f"Position: {new_position}")
+            self.stage.move_by(distance)
+            self.position_label.config(text=f"Position: {self.stage.position}")
         except ValueError:
             messagebox.showerror("Error", "Please enter a valid number for the jog distance.")
     
@@ -72,8 +74,8 @@ class StageGUI:
         """Move the stage to a specific absolute position."""
         try:
             target_position = float(self.move_to_entry.get())
-            new_position = self.stage.move_to(target_position)
-            self.position_label.config(text=f"Position: {new_position}")
+            self.stage.move_to(target_position)
+            self.position_label.config(text=f"Position: {self.stage.position}")
         except ValueError:
             messagebox.showerror("Error", "Please enter a valid number for the target position.")
     

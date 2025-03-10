@@ -162,7 +162,7 @@ class ImagingApp:
                 sn = device[0] # [('27500001', 'Kinesis K-Cube  DC Driver')]
                 device_list.append(sn)
                 # Format information about the device
-                info = f"{device[1]} - SN:{device[sn]}"
+                info = f"{device[1]} - SN:{sn}"
                 device_info.append(info)
                 
             # Update both comboboxes

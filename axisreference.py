@@ -1,6 +1,5 @@
 from PySide6.QtGui import QPalette, QGuiApplication
 
-
 def is_dark_mode():
     p = QPalette()
     c_text = p.color(QPalette.ColorRole.WindowText)

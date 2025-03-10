@@ -1,4 +1,4 @@
-from configparser import ConfigParser
+from customconfigparser import ConfigParser
 from axisreference import Reference, PositionStyle
 
 
@@ -43,7 +43,6 @@ class AxisParameters:
         self.references = references
         self.references_enabled = references_enabled
         self.ref_out_styles = ref_out_styles
-
         self.save_ids = [self.pm_id]
 
     @property

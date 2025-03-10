@@ -2,7 +2,7 @@ import libximc.highlevel as ximc
 from libximc import status_calb_t
 
 from axisparameters import AxisParameters
-from configparser import ConfigParser
+from customconfigparser import ConfigParser
 from synchronizer import Synchronizer
 
 class AxisRange:
