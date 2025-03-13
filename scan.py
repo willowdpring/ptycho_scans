@@ -64,6 +64,8 @@ class Scan:
         self.is_running = True
         self.is_paused = False
         print("Scan started")
+        self.scan_zero = (self.x_stage.position,self.y_stage.position)
+        print(f"begining a scan from {self.scan_zero}")
         
         try:
             # Check save directory exists if auto-save is enabled
@@ -83,14 +85,14 @@ class Scan:
                 if self.is_paused:
                     time.sleep(0.1)  # Small sleep to prevent CPU hogging while paused
                     continue
-
-                target_y = (i//self.num_y) * self.res_y
+                
+                target_y = self.scan_zero[1] +  (i//self.num_y) * self.res_y
 
                 if self.snake_pattern and (i//self.num_y) % 2 == 1:
-                    target_x = (self.num_x - (1 + (i % self.num_x))) * self.res_x
+                    target_x = self.scan_zero[0] + (self.num_x - (1 + (i % self.num_x))) * self.res_x
                 else:
-                    target_x = (i % self.num_x) * self.res_x
-                
+                    target_x = self.scan_zero[0] + (i % self.num_x) * self.res_x
+
                 self.x_stage.move_to(target_x)
                 self.y_stage.move_to(target_y)
 
@@ -102,7 +104,7 @@ class Scan:
                 self._save_image(image, i, target_x, target_y)
 
                 # Small delay to avoid overwhelming the hardware
-                time.sleep(0.1)
+                time.sleep(1)
                 
             print("Scan completed")
             self.reset_scan()
@@ -130,9 +132,9 @@ class Scan:
     def reset_scan(self):
         """Reset scan position to beginning"""
         if self.x_stage:
-            self.x_stage.zero()
+            self.x_stage.move_to(self.scan_zero[0])
         if self.y_stage:
-            self.y_stage.zero()
+            self.y_stage.move_to(self.scan_zero[1])
         self.current_image = 0
         self.is_running = False
         self.is_paused = False

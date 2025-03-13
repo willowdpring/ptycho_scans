@@ -48,6 +48,8 @@ class XiStage:
         self.config_parser = ConfigParser(name)
         print("makeax")
         self.axis = Axis(xi_params,self.config_parser)
+        self.min_value = xi_params.min_value 
+        self.max_value = xi_params.max_value 
         self._connect_stage()
         
         print("get_pos")

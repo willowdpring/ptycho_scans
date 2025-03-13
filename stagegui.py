@@ -17,17 +17,17 @@ class StageGUI:
         self.units = self.stage.units if 'units' in dir(self.stage) else self.stage.config_parser.get_entry('units')
 
         # Jog buttons (move stage)
-        self.jog_label = tk.Label(master, text="Move By [{self.units}]:")
+        self.jog_label = tk.Label(master, text=f"Move By [{self.units}]:")
         self.jog_label.grid(row=2, column=0, padx=10, pady=10)
         
         self.jog_entry = tk.Entry(master)
         self.jog_entry.grid(row=2, column=1, padx=10, pady=10)
         
-        self.jog_button = tk.Button(master, text="Move By [{self.units}]", command=self.jog_stage)
+        self.jog_button = tk.Button(master, text=f"Move By [{self.units}]", command=self.jog_stage)
         self.jog_button.grid(row=2, column=2, padx=10, pady=10)
         
         # Move to absolute position section
-        self.move_to_label = tk.Label(master, text="Move to Position [{self.units}]:")
+        self.move_to_label = tk.Label(master, text=f"Move to Position [{self.units}]:")
         self.move_to_label.grid(row=3, column=0, padx=10, pady=10)
         
         self.move_to_entry = tk.Entry(master)

@@ -77,9 +77,7 @@ class CameraGUI:
             return
         
         # Convert the frame to RGB (OpenCV uses BGR by default)
-        if len(frame.shape) == 3:  # If the frame is a color image
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        else:  # If the frame is grayscale
+        if frame.shape[2] == 1:  # If the frame is grayscale
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
 
         # Convert to ImageTk format for displaying in Tkinter

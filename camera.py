@@ -50,7 +50,7 @@ class Camera:
             try:
                 # Start acquisition and wait for completion
                 self.camera.start_acquisition()
-                frame = self.camera.grab(timeout=2 * self.exposure / 1000.0)  # Wait longer than exposure
+                frame = self.camera.grab(frame_timeout=2 * self.exposure / 1000.0)  # Wait longer than exposure
                 self.camera.stop_acquisition()
                 
                 # In a real app, you might want to save this image
